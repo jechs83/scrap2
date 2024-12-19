@@ -1,0 +1,48 @@
+import pymongo
+from decouple import config
+from typing import List, Tuple, Optional
+
+def links() -> Tuple[List[Tuple[str, Optional[str], str]], ...]:
+    try:
+        cliente = pymongo.MongoClient(config("MONGODB"))
+        base_de_datos = cliente["oechsle"]
+        coleccion = base_de_datos["links"]
+
+        listas = {i: [] for i in range(1, 21)}
+
+        for documento in coleccion.find():
+            lista_num = documento.get("lista")
+            if not isinstance(lista_num, int) or not 1 <= lista_num <= 20:
+                continue
+
+            listas[lista_num].append((
+                documento.get("url", ""),
+                documento.get("json_link"),
+                documento.get("page", "")
+            ))
+
+        return tuple(listas[i] for i in range(1, 21))
+
+    except Exception as e:
+        print(f"Error en la función links: {e}")
+        return tuple([] for _ in range(20))
+
+    finally:
+        if 'cliente' in locals():
+            cliente.close()
+
+            
+
+def lista_block(db) -> List[str]:
+    try:
+        cliente = pymongo.MongoClient(config("MONGODB"))
+        db = cliente['black_list']
+        return db.block_brand.distinct('brand')
+
+    except Exception as e:
+        print(f"Error en la función lista_block: {e}")
+        return []
+
+    finally:
+        if 'cliente' in locals():
+            cliente.close()
